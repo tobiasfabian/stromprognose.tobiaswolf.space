@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+  <head>
+		<title>Prognose Stromverbrauch/-erzeugung</title>
+    <script src="/assets/js/index.js" type="module" defer></script>
+    <style>
+      body {
+				max-width: 900px;
+				margin: 0 auto;
+        padding: 40px;
+				font-family: sans-serif;
+				line-height: 1.3;
+				background-color: hsl(0, 0%, 98%);
+      }
+			#graph {
+				width: 100%;
+				aspect-ratio: 5/2;
+			}
+			#graph_info {
+				min-height: calc(1em * 1.3 * 5);
+				min-width: 240px;
+				width: max-content;
+				margin-inline: auto;
+			}
+			.fields {
+				display: flex;
+				gap: 2em;
+			}
+			select,
+			input {
+				box-sizing: border-box;
+				height: 32px;
+				padding: 4px;
+				border: 1px solid gray;
+				border-radius: 4px;
+				font-size: inherit;
+				font-family: inherit;
+				background-color: white;
+				appearance: none;
+			}
+			select::after {
+				content: '';
+				width: 5px;
+				height: 4px;
+				clip-path: polygon(0% 0%, 100% 0%, 50% 0%);
+				background-color: hsl(0, 0%, 50%);
+			}
+			table > * > * > *:not(:first-child) {
+				padding-inline-start: 0.3em;
+			}
+			table > * > * > *:not(:last-child) {
+				padding-inline-end: 0.3em;
+			}
+			table > * > * > td {
+				text-align: end;
+			}
+    </style>
+  </head>
+  <body>
+		<h1>Prognose Stromverbrauch/-erzeugung</h1>
+		<div class="fields">
+    	<div class="field">
+      	<label for="date"><h3>Datum</h3></label>
+      	<input id="date" name="date" type="date">
+			</div>
+    	<div class="field">
+      	<label for="region"><h3>Region</h3></label>
+      	<select id="region" name="region">
+					<option value="DE" selected="selected">Land: Deutschland</option>
+					<option value="AT">Land: Österreich</option>
+					<option value="LU">Land: Luxemburg</option>
+					<option value="50Hertz">Regelzone (DE): 50Hertz</option>
+					<option value="Amprion">Regelzone (DE): Amprion</option>
+					<option value="TenneT">Regelzone (DE): TenneT</option>
+					<option value="TransnetBW">Regelzone (DE): TransnetBW</option>
+					<option value="APG">Regelzone (AT): APG</option>
+					<option value="Creos">Regelzone (LU): Creos</option>
+				</select>
+    	</div>
+		</div>
+		<h2>Schaubild</h2>
+    <div id="graph"></div>
+		<div id="graph_info"></div>
+		<h2>Tabelle</h2>
+		<table id="table"></table>
+		<h2>Impressum</h2>
+		<h3>Datenquelle</h3>
+		<p>Bundesnetzagentur | <a href="https://www.smard.de">SMARD.de</a> (CC BY 4.0)</p>
+		<h3>Kontakt</h3>
+		<p><a href="https://tobiaswolf.me">tobiaswolf.me</a></p>
+		<h3>Code</h3>
+		<p><a href="https://github.com/tobiasfabian/stromprognose.tobiaswolf.space">Source Code</a></p>
+  </body>
+</html>
