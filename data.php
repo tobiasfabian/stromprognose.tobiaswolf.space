@@ -26,11 +26,12 @@ curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 $response = curl_exec($curl);
 curl_close($curl);
+$info = curl_getinfo($curl);
 
 // write cache
-// var_dump(substr($response, -3));
-// die();
-if (!str_contains($response, ';-') && !str_contains($response, 'Keine Daten für gegebene Anfrage')) {
+if (!str_contains($response, ';-')
+	&& !str_contains($response, 'Keine Daten für gegebene Anfrage')
+	&& str_contains($info['content_type'], 'text/csv')) {
 	$bytes = file_put_contents($cacheFile, $response, FILE_USE_INCLUDE_PATH);
 }
 echo $response;
