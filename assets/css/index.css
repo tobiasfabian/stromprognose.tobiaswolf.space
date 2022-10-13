@@ -1,0 +1,68 @@
+
+body {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 40px 20px;
+	font-family: sans-serif;
+	line-height: 1.3;
+	background-color: hsl(0, 0%, 98%);
+}
+#graph {
+	width: 100%;
+	aspect-ratio: 5/2;
+	overflow: hidden;
+}
+#graph_info {
+	margin-block-start: 1em;
+	min-height: calc(1em * 1.3 * 7);
+	min-width: 240px;
+	width: max-content;
+	margin-inline: auto;
+}
+.fields {
+	display: flex;
+	column-gap: 2em;
+	flex-wrap: wrap;
+}
+select,
+input {
+	box-sizing: border-box;
+	height: 32px;
+	padding: 4px 6px 2px;
+	border: 1px solid gray;
+	border-radius: 4px;
+	font-size: inherit;
+	font-family: inherit;
+	background-color: white;
+	appearance: none;
+}
+select::after {
+	content: '';
+	width: 5px;
+	height: 4px;
+	clip-path: polygon(0% 0%, 100% 0%, 50% 0%);
+	background-color: hsl(0, 0%, 50%);
+}
+.table {
+	overflow: auto;
+	width: 100%;
+}
+table > * > * > * {
+	vertical-align: top;
+}
+table > * > * > *:not(:first-child) {
+	padding-inline-start: 0.3em;
+}
+table > * > * > *:not(:last-child) {
+	padding-inline-end: 0.3em;
+}
+table > * > *:not(:first-child) > * {
+	padding-block-start: 0.1em;
+	white-space: nowrap;
+}
+table > * > *:not(:last-child) > * {
+	padding-block-end: 0.1em;
+}
+table > * > * > td {
+	text-align: end;
+}

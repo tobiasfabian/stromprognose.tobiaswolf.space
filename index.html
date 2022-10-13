@@ -2,59 +2,9 @@
 <html>
   <head>
 		<title>Prognose Stromverbrauch/-erzeugung</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1.0">
     <script src="/assets/js/index.js" type="module" defer></script>
-    <style>
-      body {
-				max-width: 900px;
-				margin: 0 auto;
-        padding: 40px;
-				font-family: sans-serif;
-				line-height: 1.3;
-				background-color: hsl(0, 0%, 98%);
-      }
-			#graph {
-				width: 100%;
-				aspect-ratio: 5/2;
-			}
-			#graph_info {
-				min-height: calc(1em * 1.3 * 5);
-				min-width: 240px;
-				width: max-content;
-				margin-inline: auto;
-			}
-			.fields {
-				display: flex;
-				gap: 2em;
-			}
-			select,
-			input {
-				box-sizing: border-box;
-				height: 32px;
-				padding: 4px;
-				border: 1px solid gray;
-				border-radius: 4px;
-				font-size: inherit;
-				font-family: inherit;
-				background-color: white;
-				appearance: none;
-			}
-			select::after {
-				content: '';
-				width: 5px;
-				height: 4px;
-				clip-path: polygon(0% 0%, 100% 0%, 50% 0%);
-				background-color: hsl(0, 0%, 50%);
-			}
-			table > * > * > *:not(:first-child) {
-				padding-inline-start: 0.3em;
-			}
-			table > * > * > *:not(:last-child) {
-				padding-inline-end: 0.3em;
-			}
-			table > * > * > td {
-				text-align: end;
-			}
-    </style>
+		<link href="/assets/css/index.css/" rel="stylesheet">
   </head>
   <body>
 		<h1>Prognose Stromverbrauch/-erzeugung</h1>
