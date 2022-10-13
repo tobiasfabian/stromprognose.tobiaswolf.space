@@ -13,6 +13,7 @@ $cacheFile = 'cache/' . md5($requestHash);
 
 $cacheResponse = file_get_contents($cacheFile, true);
 if ($cacheResponse !== false) {
+	header('x-cache: '. $requestHash);
 	echo $cacheResponse;
 	return;
 }
@@ -31,7 +32,7 @@ $info = curl_getinfo($curl);
 // write cache
 if (!str_contains($response, ';-')
 	&& !str_contains($response, 'Keine Daten für gegebene Anfrage')
-	&& str_contains($info['content_type'], 'text/csv')) {
+	&& str_contains($info['content_type'], 'application/octet-stream')) {
 	$bytes = file_put_contents($cacheFile, $response, FILE_USE_INCLUDE_PATH);
 }
 echo $response;
