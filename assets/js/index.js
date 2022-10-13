@@ -5359,19 +5359,19 @@ class Graph {
         end: 0,
       },
       y: {
-        start: 20,
+        start: 0,
         end: 20,
       },
     };
     this.colors = {
       gray_400: '#ccc',
-      gray_500: '#999',
       gray_600: '#777',
       yellow_400: '#f0c674',
       yellow_600: '#cca000',
       green_400: '#a7bd68',
       green_600: '#5d800d',
-      blue_300: '#b1c2d8',
+      aqua_400: '#8abeb7',
+      aqua_600: '#398e93',
       blue_400: '#7e9abf',
       blue_600: '#4271ae',
       purple_400: '#b294bb',
@@ -5415,15 +5415,41 @@ class Graph {
       const d0 = data[x0];
 
       this.graphInfoElement.innerHTML = `
-        ${dateTimeFormat.format(d0.date)}<br>
-        Gesamt (Netzlast): ${numberFormat.format(d0.total)} MWh<br>
-        Photovoltaik: ${numberFormat.format(d0.photovoltaic)} MWh<br>
-        Wind: ${numberFormat.format(d0.wind)} MWh<br>
-        Anteil Erneuerbare: ${numberFormat.format(d0.percentRenewable * 100)}%
+        <strong>
+          ${dateTimeFormat.format(d0.date)}
+        </strong>
+        <strong style="color: ${this.colors.gray_600}">
+          Gesamt (Netzlast): ${numberFormat.format(d0.total)} MWh
+        </strong>
+        <strong style="color: ${this.colors.purple_600}">
+          Anteil Erneuerbare: ${numberFormat.format(d0.percentRenewable * 100)}%
+        </strong>
+        <strong style="color: ${this.colors.yellow_600}">
+          Photovoltaik: ${numberFormat.format(d0.photovoltaic)} MWh
+        </strong>
+        <strong style="color: ${this.colors.blue_600}">
+          Wind: ${numberFormat.format(d0.wind)} MWh
+        </strong>
+        <div style="color: ${this.colors.blue_600}; padding-inline-start: 1em;">
+          Wind Onshore: ${numberFormat.format(d0.windOnshore)} MWh
+        </div>
+        <div style="color: ${this.colors.aqua_600}; padding-inline-start: 1em;">
+          Wind Offshore: ${numberFormat.format(d0.windOffshore)} MWh
+        </div>
       `;
     };
     this.onMouseleave = () => {
       this.graphInfoElement.style = 'visibility: hidden';
+    };
+    this.onResize = () => {
+      this.width = this.graphElement.offsetWidth;
+      this.height = this.graphElement.offsetHeight;
+      this.widthSvg = this.width - this.margin.x.start - this.margin.x.end;
+      this.heightSvg = this.height - this.margin.y.start - this.margin.y.end;
+      select('#graph svg')
+        .attr('width', this.width)
+        .attr('height', this.height);
+      this.draw();
     };
     this.mergeData = (data1, data2) => data1.map((row, index) => {
       const data2Row = data2.find((item) => (
@@ -5446,6 +5472,7 @@ class Graph {
       this.region = this.regionElement.value;
       this.loadData();
     });
+    window.addEventListener('resize', this.onResize.bind(this));
 
     // init
     this.width = this.graphElement.offsetWidth;
@@ -5499,15 +5526,13 @@ class Graph {
   drawPercentRenewable() {
     const { heightSvg, x, data } = this;
 
-    const filteredData = data.filter((row) => !Number.isNaN(row.percentRenewable));
-
     // Add Y axis
     const y = linear()
       .domain([0, 1])
       .range([heightSvg, 0]);
 
     this.svg.append('path')
-      .datum(filteredData)
+      .datum(data)
       .attr('fill', 'none')
       .attr('stroke', this.colors.purple_600)
       .attr('stroke-dasharray', '5,5')
@@ -5530,7 +5555,18 @@ class Graph {
         .y0((d) => y(d.wind))
         .y1((d) => y(d.photovoltaic + d.wind)));
 
-    // Add the line Wind
+    // Add the line Wind Offshore
+    svg.append('path')
+      .datum(data)
+      .attr('fill', this.colors.aqua_400)
+      .attr('stroke', this.colors.aqua_600)
+      .attr('stroke-width', 2)
+      .attr('d', area()
+        .x((d) => x(d.date))
+        .y0(y(0))
+        .y1((d) => y(d.windOffshore)));
+
+    // Add the line Wind Onshore
     svg.append('path')
       .datum(data)
       .attr('fill', this.colors.blue_400)
@@ -5538,27 +5574,16 @@ class Graph {
       .attr('stroke-width', 2)
       .attr('d', area()
         .x((d) => x(d.date))
-        .y0(y(0))
-        .y1((d) => y(d.wind)));
-
-    // Add the line
-    // this.svg.append('path')
-    //   .datum(data)
-    //   .attr('fill', 'none')
-    //   .attr('stroke', this.colors.green_600)
-    //   .attr('stroke-width', 2)
-    //   .attr('d', d3.area()
-    //     .x((d) => x(d.date))
-    //     .y((d) => y(d.renewable)));
+        .y0((d) => y(d.windOffshore))
+        .y1((d) => y(d.windOffshore + d.windOnshore)));
   }
 
   drawTotals(y) {
     const { data, x } = this;
-    const filteredData = data.filter((row) => !Number.isNaN(row.total));
 
     // Add the line
     this.svg.append('path')
-      .datum(filteredData)
+      .datum(data)
       .attr('fill', this.colors.gray_400)
       .attr('stroke', this.colors.gray_600)
       .attr('stroke-width', 2)
@@ -5581,8 +5606,8 @@ class Graph {
       total: 'Gesamt (Netzlast)',
       photovoltaic: 'Photovoltaik',
       wind: 'Wind',
-      windOffshore: 'Wind Offshore ',
       windOnshore: 'Wind Onshore ',
+      windOffshore: 'Wind Offshore ',
       percentRenewable: 'Anteil Erneuerbare',
     };
 

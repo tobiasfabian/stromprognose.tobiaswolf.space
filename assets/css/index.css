@@ -19,6 +19,9 @@ body {
 	width: max-content;
 	margin-inline: auto;
 }
+#graph_info > * {
+	display: block;
+}
 .fields {
 	display: flex;
 	column-gap: 2em;
@@ -57,11 +60,11 @@ table > * > * > *:not(:last-child) {
 	padding-inline-end: 0.3em;
 }
 table > * > *:not(:first-child) > * {
-	padding-block-start: 0.1em;
+	padding-block-start: 0.2em;
 	white-space: nowrap;
 }
 table > * > *:not(:last-child) > * {
-	padding-block-end: 0.1em;
+	padding-block-end: 0.2em;
 }
 table > * > * > td {
 	text-align: end;
