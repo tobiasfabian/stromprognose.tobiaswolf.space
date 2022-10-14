@@ -5359,7 +5359,7 @@ class Graph {
         end: 0,
       },
       y: {
-        start: 0,
+        start: 20,
         end: 20,
       },
     };
