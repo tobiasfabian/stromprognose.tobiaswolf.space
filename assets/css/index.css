@@ -1,55 +1,136 @@
+@import url("framework/reset.css");
+@import url("components/visually-hidden.css");
+@import url("components/loading-indicator.css");
 
-body {
-	max-width: 900px;
-	margin: 0 auto;
-	padding: 40px 20px;
-	font-family: sans-serif;
-	line-height: 1.3;
-	background-color: hsl(0, 0%, 98%);
+:root {
+	--color--gray-400:   hsl(  0,   0%, 80%);
+	--color--gray-600:   hsl(  0,   0%, 47%);
+	--color--yellow-400: hsl( 40,  81%, 50%);
+	--color--yellow-600: hsl( 40, 100%, 40%);
+	--color--green-400:  hsl( 91,  60%, 45%);
+	--color--green-600:  hsl(104,  60%, 31%);
+	--color--red-400:    hsl(  0,  70%, 50%);
+	--color--red-600:    hsl(  0,  60%, 40%);
+	--color--acqua-400:  hsl(172,  29%, 64%);
+	--color--acqua-600:  hsl(172,  44%, 40%);
+	--color--blue-400:   hsl(214,  34%, 62%);
+	--color--blue-600:   hsl(214,  45%, 47%);
+	--color--purple-400: hsl(286,  22%, 66%);
+	--color--purple-600: hsl(286,  45%, 50%);
+	--color--link:       hsl(230,  90%, 40%);
+	--color--postive:    var(--color--green-600);
+	--color--nevative:   var(--color--red-600);
+
+	--opacity--loading: 0.2;
 }
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color--gray-400:   hsl(  0,  0%, 30%);
+		--color--gray-600:   hsl(  0,  0%, 47%);
+		--color--yellow-400: hsl( 40, 81%, 35%);
+		--color--yellow-600: hsl( 40, 90%, 40%);
+  	--color--green-400:  hsl( 91, 60%, 25%);
+		--color--green-600:  hsl(104, 50%, 32%);
+		--color--red-400:    hsl(  0, 70%, 50%);
+		--color--red-600:    hsl(  0, 50%, 40%);
+		--color--acqua-400:  hsl(172, 29%, 35%);
+		--color--acqua-600:  hsl(172, 44%, 40%);
+		--color--blue-400:   hsl(214, 34%, 39%);
+		--color--blue-600:   hsl(214, 45%, 47%);
+		--color--purple-400: hsl(286, 22%, 40%);
+		--color--purple-600: hsl(286, 45%, 55%);
+		--color--link:       hsl(230, 90%, 70%);
+	}
+}
+
+html {
+	/* 1rem equals 10px, when 16px is default font-size */
+	font-size: 62.5%;
+	-webkit-text-size-adjust: none;
+	color-scheme: dark light;
+}
+body {
+	max-width: 920px;
+	margin: 0 auto;
+	padding: 2rem 10px;
+	background-color: Canvas;
+}
+h1 {
+	font-size: small;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	text-align: center;
+}
+
+h2 {
+	margin-block-start: 4rem;
+}
+h3 {
+	margin-block-start: 2rem;
+}
+h3 + p {
+	margin-block-start: 0.5rem;
+}
+a {
+	color: var(--color--link);
+	text-underline-offset: 0.2ex;
+}
+button, summary {
+	border: 0;
+	cursor: pointer;
+}
+summary > h2 {
+	display: inline;
+	margin-block-start: 0;
+}
+
 #graph {
+	display: grid;
 	width: 100%;
-	aspect-ratio: 5/2;
+	margin-block-start: 2rem;
+	aspect-ratio: 16/10;
 	overflow: hidden;
 }
+@media (min-width: 50em) {
+	#graph {
+		aspect-ratio: 16/8;
+	}
+}
+#graph > * {
+	grid-column-start: 1;
+	grid-row-start: 1;
+}
+#graph.-loading svg {
+	opacity: var(--opacity--loading);
+}
+#graph text {
+	font-size: 1.4rem;
+	font-weight: 600;
+}
+
 #graph_info {
 	margin-block-start: 1em;
-	min-height: calc(1em * 1.3 * 7);
-	min-width: 240px;
-	width: max-content;
 	margin-inline: auto;
+	max-width: 50rem;
+	min-height: calc(1em * 1.5 * 7);
+	min-width: 240px;
 }
 #graph_info > * {
 	display: block;
 }
-.fields {
-	display: flex;
-	column-gap: 2em;
-	flex-wrap: wrap;
-}
-select,
-input {
-	box-sizing: border-box;
-	height: 32px;
-	padding: 4px 6px 2px;
-	border: 1px solid gray;
-	border-radius: 4px;
-	font-size: inherit;
-	font-family: inherit;
-	background-color: white;
-	appearance: none;
-}
-select::after {
-	content: '';
-	width: 5px;
-	height: 4px;
-	clip-path: polygon(0% 0%, 100% 0%, 50% 0%);
-	background-color: hsl(0, 0%, 50%);
+#graph_info.-loading {
+	opacity: 0.2;
 }
 .table {
+	margin-block-start: 2rem;
 	overflow: auto;
 	width: 100%;
 }
+
+summary {
+	margin-block-start: 4rem;
+}
+
 table > * > * > * {
 	vertical-align: top;
 }

@@ -5,6 +5,9 @@ header('Cache-Control: private, max-age=' . $maxAge);
 
 $url = 'https://www.smard.de/nip-download-manager/nip/download/market-data';
 
+// DEBUG
+// sleep(1);
+
 $post = file_get_contents('php://input');
 $requestHash = md5($post);
 $data = json_decode($post);
@@ -21,6 +24,7 @@ if ($cacheResponse !== false) {
 $curl = curl_init('https://www.smard.de/nip-download-manager/nip/download/market-data');
 curl_setopt($curl, CURLOPT_HTTPHEADER, [
 	'Content-Type: application/json;charset=utf-8',
+	'Accept-Language: de-DE,de;q=0.9',
 ]);
 curl_setopt($curl, CURLOPT_POST, true);
 curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));

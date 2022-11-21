@@ -1,0 +1,14 @@
+@import url("../framework/reset.css");
+
+label {
+	color: FieldText;
+	border-block-end: 1px solid currentcolor;
+}
+
+input {
+	border: 0;
+	text-decoration: underline;
+}
+input.-browser-chrome {
+	max-width: 8.5ch;
+}

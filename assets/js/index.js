@@ -342,12 +342,12 @@ function axis(orient, scale) {
   return axis;
 }
 
-function axisBottom(scale) {
-  return axis(bottom, scale);
+function axisRight(scale) {
+  return axis(right, scale);
 }
 
-function axisLeft(scale) {
-  return axis(left, scale);
+function axisBottom(scale) {
+  return axis(bottom, scale);
 }
 
 var noop = {value: () => {}};
@@ -5349,36 +5349,310 @@ new Transform(1, 0, 0);
 
 Transform.prototype;
 
+class Select {
+  constructor(element) {
+    const labelElement = element.parentElement;
+
+    this.element = element;
+
+    labelElement.addEventListener('click', this.open.bind(this));
+  }
+
+  open() {
+    const event = document.createEvent('MouseEvents');
+    event.initMouseEvent('mousedown', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    this.element.dispatchEvent(event);
+  }
+}
+
+document.querySelectorAll('select').forEach((element) => new Select(element));
+
+class ForecastSummary extends HTMLElement {
+  storage = {};
+
+  constructor() {
+    super();
+    const templateElement = document.getElementById('forecast-summary');
+    const templateContent = templateElement.content;
+
+    this.numberFormatPercent = new Intl.NumberFormat('de-DE', {
+      style: 'percent',
+      maximumFractionDigits: 0,
+    });
+
+    // https://stackoverflow.com/questions/57565794/how-would-you-turn-a-javascript-variable-into-a-template-literal#57565813
+    this.interpolate = (str, obj) => str.replace(
+      /\${([^}]+)}/g,
+      (_, prop) => obj[prop],
+    );
+
+    const shadowRoot = this.attachShadow({ mode: 'open' });
+    shadowRoot.appendChild(templateContent.cloneNode(true));
+  }
+
+  connectedCallback() {
+    this.element = this.shadowRoot.querySelector('.forecast-summary');
+    this.forecastDate = this.shadowRoot.querySelector('forecast-date');
+    this.forecastRegion = this.shadowRoot.querySelector('forecast-region');
+    this.averageSlot = this.shadowRoot.querySelector('slot[name="average"]');
+    this.maxSlot = this.shadowRoot.querySelector('slot[name="max"]');
+    this.minSlot = this.shadowRoot.querySelector('slot[name="min"]');
+
+    this.maxSlotTemplateString = this.maxSlot.innerHTML;
+    this.minSlotTemplateString = this.minSlot.innerHTML;
+
+    this.update();
+  }
+
+  set loading(value) {
+    this.element.classList.toggle('-loading', value);
+    if (value === true) {
+      this.data = null;
+      this.update();
+    }
+    this.storage.loading = value;
+  }
+
+  get loading() {
+    return this.storage.loading;
+  }
+
+  get average() {
+    if (!this.data) {
+      return 0;
+    }
+    let sum = 0;
+    this.data.forEach((item) => {
+      sum += item.percentRenewable;
+    });
+    return (sum / this.data.length);
+  }
+
+  get minMaxIndex() {
+    const { data } = this;
+    let minIndex = 0;
+    let minValue = data[0].percentRenewable;
+    let maxIndex = minIndex;
+    let maxValue = minValue;
+    data.forEach((item, index) => {
+      if (item.percentRenewable > maxValue) {
+        maxIndex = index;
+        maxValue = item.percentRenewable;
+      }
+      if (item.percentRenewable < minValue) {
+        minIndex = index;
+        minValue = item.percentRenewable;
+      }
+    });
+    return {
+      minIndex,
+      maxIndex,
+    };
+  }
+
+  get maxIndex() {
+    return this.minMaxIndex.maxIndex;
+  }
+
+  get minIndex() {
+    return this.minMaxIndex.minIndex;
+  }
+
+  get averageText() {
+    return this.numberFormatPercent.format(this.average);
+  }
+
+  get minText() {
+    let time = '00:00 Uhr';
+    let percent = this.numberFormatPercent.format(0);
+    if (this.data) {
+      const minItem = this.data[this.minIndex];
+      time = `${minItem.Uhrzeit} Uhr`;
+      percent = this.numberFormatPercent.format(minItem.percentRenewable);
+    }
+    return this.interpolate(this.minSlotTemplateString, {
+      time,
+      percent,
+    });
+  }
+
+  get maxText() {
+    let time = '00:00 Uhr';
+    let percent = this.numberFormatPercent.format(0);
+    if (this.data) {
+      const maxItem = this.data[this.maxIndex];
+      time = `${maxItem.Uhrzeit} Uhr`;
+      percent = this.numberFormatPercent.format(maxItem.percentRenewable);
+    }
+    return this.interpolate(this.maxSlotTemplateString, {
+      time,
+      percent,
+    });
+  }
+
+  update(data) {
+    this.data = data;
+    this.averageSlot.innerText = this.averageText;
+    this.maxSlot.innerHTML = this.maxText;
+    this.minSlot.innerHTML = this.minText;
+  }
+}
+
+window.customElements.define('forecast-summary', ForecastSummary);
+
+class ForecastDate extends HTMLElement {
+  constructor() {
+    super();
+    const templateElement = document.getElementById('forecast-date');
+    const templateContent = templateElement.content;
+    const shadowRoot = this.attachShadow({ mode: 'open' });
+
+    shadowRoot.appendChild(templateContent.cloneNode(true));
+  }
+
+  connectedCallback() {
+    const labelElement = this.shadowRoot.querySelector('label');
+    this.inputElement = this.shadowRoot.querySelector('input');
+
+    labelElement.addEventListener('click', this.open.bind(this));
+    this.inputElement.addEventListener('change', () => {
+      this.updateDate();
+    });
+
+    this.setToToday();
+
+    window.addEventListener('keydown', (event) => {
+      if (event.code === 'ArrowLeft') {
+        this.setToPreviousDay();
+      } else if (event.code === 'ArrowRight') {
+        this.setToNextDay();
+      }
+    });
+
+    if (navigator.userAgent.includes('Chrome')) {
+      this.inputElement.classList.add('-browser-chrome');
+    }
+  }
+
+  get value() {
+    return this.inputElement.value;
+  }
+
+  setToPreviousDay() {
+    const date = new Date(this.value);
+    date.setTime(date.getTime() - (24 * 60 * 60 * 1000));
+
+    this.inputElement.value = date.toISOString().substr(0, 10);
+    this.updateDate();
+  }
+
+  setToNextDay() {
+    const date = new Date(this.value);
+    date.setTime(date.getTime() + (24 * 60 * 60 * 1000));
+
+    this.inputElement.value = date.toISOString().substr(0, 10);
+    this.updateDate();
+  }
+
+  setToToday() {
+    const timezoneOffset = (new Date().getTimezoneOffset() * 60 * 1000) * -1;
+    const datetime = new Date().getTime() + timezoneOffset;
+
+    this.inputElement.value = new Date(datetime).toISOString().substr(0, 10);
+    this.updateDate();
+  }
+
+  updateDate() {
+    const updateEvent = new CustomEvent('update', {
+      detail: {
+        value: this.value,
+      },
+    });
+    this.dispatchEvent(updateEvent);
+  }
+
+  open() {
+    this.inputElement.focus();
+    const event = document.createEvent('KeyboardEvent');
+    event.initKeyboardEvent('keydown', true, true, document.defaultView, 'F4', 0);
+    this.inputElement.dispatchEvent(event);
+  }
+}
+
+window.customElements.define('forecast-date', ForecastDate);
+
+class ForecastRegion extends HTMLElement {
+  constructor() {
+    super();
+    const templateElement = document.getElementById('forecast-region');
+    const templateContent = templateElement.content;
+    const shadowRoot = this.attachShadow({ mode: 'open' });
+
+    shadowRoot.appendChild(templateContent.cloneNode(true));
+  }
+
+  connectedCallback() {
+    const labelElement = this.shadowRoot.querySelector('label');
+    this.inputElement = this.shadowRoot.querySelector('select');
+    this.textElement = this.shadowRoot.querySelector('.text');
+
+    labelElement.addEventListener('click', this.open.bind(this));
+    this.inputElement.addEventListener('change', () => {
+      this.updateRegion();
+    });
+  }
+
+  get value() {
+    return this.inputElement.value;
+  }
+
+  get text() {
+    return this.inputElement.querySelector(`[value="${this.value}"]`).dataset.text;
+  }
+
+  updateText() {
+    this.textElement.innerText = this.text;
+  }
+
+  updateRegion() {
+    this.updateText();
+    const updateEvent = new CustomEvent('update', {
+      detail: {
+        value: this.value,
+      },
+    });
+    this.dispatchEvent(updateEvent);
+  }
+
+  open() {
+    const event = document.createEvent('MouseEvents');
+    event.initMouseEvent('mousedown', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    this.inputElement.dispatchEvent(event);
+  }
+}
+
+window.customElements.define('forecast-region', ForecastRegion);
+
 class Graph {
+  storage = {};
+
   constructor() {
     // variables
-    this.endpoint = '/data.php';
     this.margin = {
       x: {
-        start: 70,
-        end: 0,
+        start: -1,
+        end: -1,
       },
       y: {
-        start: 20,
-        end: 20,
+        start: 30,
+        end: 30,
       },
-    };
-    this.colors = {
-      gray_400: '#ccc',
-      gray_600: '#777',
-      yellow_400: '#f0c674',
-      yellow_600: '#cca000',
-      green_400: '#a7bd68',
-      green_600: '#5d800d',
-      aqua_400: '#8abeb7',
-      aqua_600: '#398e93',
-      blue_400: '#7e9abf',
-      blue_600: '#4271ae',
-      purple_400: '#b294bb',
-      purple_600: '#9c48b9',
     };
     this.numberFormat = new Intl.NumberFormat('de-DE', {
       maximumFractionDigits: 0,
+    });
+    this.timeFormat = new Intl.DateTimeFormat('de-DE', {
+      timeStyle: 'short',
     });
     this.dateTimeFormat = new Intl.DateTimeFormat('de-DE', {
       dateStyle: 'medium',
@@ -5392,9 +5666,8 @@ class Graph {
     this.x = null;
 
     // dom elements
-    this.dateElement = document.querySelector('input[name="date"]');
-    this.regionElement = document.querySelector('select[name="region"]');
     this.graphElement = document.querySelector('#graph');
+    this.loadingIndicatorElement = document.querySelector('.loading-indicator');
     this.graphInfoElement = document.querySelector('#graph_info');
     this.tableElement = document.querySelector('#table');
 
@@ -5403,11 +5676,12 @@ class Graph {
       this.graphInfoElement.style = 'visibility: visible';
     };
     this.onMousemove = (event) => {
+      event.preventDefault();
       const {
         data,
         x,
         numberFormat,
-        dateTimeFormat,
+        timeFormat,
       } = this;
       const bisect = bisector((d) => d.date).left;
       const xPos = pointer(event)[0];
@@ -5416,24 +5690,24 @@ class Graph {
 
       this.graphInfoElement.innerHTML = `
         <strong>
-          ${dateTimeFormat.format(d0.date)}
+          ${timeFormat.format(d0.date)}
         </strong>
-        <strong style="color: ${this.colors.gray_600}">
+        <strong style="color: var(--color--gray-600)">
           Gesamt (Netzlast): ${numberFormat.format(d0.total)} MWh
         </strong>
-        <strong style="color: ${this.colors.purple_600}">
+        <strong style="color: var(--color--purple-600)">
           Anteil Erneuerbare: ${numberFormat.format(d0.percentRenewable * 100)}%
         </strong>
-        <strong style="color: ${this.colors.yellow_600}">
+        <strong style="color: var(--color--yellow-600)">
           Photovoltaik: ${numberFormat.format(d0.photovoltaic)} MWh
         </strong>
-        <strong style="color: ${this.colors.blue_600}">
+        <strong style="color: var(--color--blue-600)">
           Wind: ${numberFormat.format(d0.wind)} MWh
         </strong>
-        <div style="color: ${this.colors.blue_600}; padding-inline-start: 1em;">
+        <div style="color: var(--color--blue-600); padding-inline-start: 1em;">
           Wind Onshore: ${numberFormat.format(d0.windOnshore)} MWh
         </div>
-        <div style="color: ${this.colors.aqua_600}; padding-inline-start: 1em;">
+        <div style="color: var(--color--acqua-600); padding-inline-start: 1em;">
           Wind Offshore: ${numberFormat.format(d0.windOffshore)} MWh
         </div>
       `;
@@ -5442,59 +5716,53 @@ class Graph {
       this.graphInfoElement.style = 'visibility: hidden';
     };
     this.onResize = () => {
-      this.width = this.graphElement.offsetWidth;
-      this.height = this.graphElement.offsetHeight;
-      this.widthSvg = this.width - this.margin.x.start - this.margin.x.end;
-      this.heightSvg = this.height - this.margin.y.start - this.margin.y.end;
-      select('#graph svg')
-        .attr('width', this.width)
-        .attr('height', this.height);
+      this.updateSizes();
       this.draw();
-    };
-    this.mergeData = (data1, data2) => data1.map((row, index) => {
-      const data2Row = data2.find((item) => (
-        item.date.toISOString() === data1[index].date.toISOString()
-      ));
-      return Object.assign(row, data2Row ?? {});
-    });
-    // Parse german number
-    this.parseNumber = (numberString) => {
-      const number = parseFloat(numberString.replace('.', ''));
-      return Number.isNaN(number) ? 0 : number;
     };
 
     // event listener
-    this.dateElement.addEventListener('change', () => {
-      this.date = this.dateElement.value;
-      this.loadData();
-    });
-    this.regionElement.addEventListener('change', () => {
-      this.region = this.regionElement.value;
-      this.loadData();
-    });
     window.addEventListener('resize', this.onResize.bind(this));
 
     // init
+    this.updateSizes();
+    this.initSvg();
+  }
+
+  set loading(value) {
+    this.graphElement.classList.toggle('-loading', value);
+    this.loadingIndicatorElement.toggleAttribute('hidden', !value);
+    this.graphInfoElement.classList.toggle('-loading', value);
+    this.storage.loading = value;
+  }
+
+  get loading() {
+    return this.storage.loading;
+  }
+
+  updateSizes() {
     this.width = this.graphElement.offsetWidth;
     this.height = this.graphElement.offsetHeight;
     this.widthSvg = this.width - this.margin.x.start - this.margin.x.end;
     this.heightSvg = this.height - this.margin.y.start - this.margin.y.end;
-    this.initSvg();
-    this.setDateElementToToday();
-    this.date = this.dateElement.value;
-    this.region = this.regionElement.value;
-    this.loadData();
+    select('#graph svg')
+      .attr('width', this.width)
+      .attr('height', this.height);
+  }
+
+  update(data) {
+    this.data = data;
+    this.updateSizes();
+    this.draw();
+    this.generateTable();
   }
 
   draw() {
     const {
-      data,
       svg,
+      data,
       widthSvg,
       heightSvg,
-      numberFormat,
     } = this;
-    console.log('draw', data);
 
     svg.selectAll('*').remove();
 
@@ -5503,24 +5771,62 @@ class Graph {
       .range([0, widthSvg]);
 
     // Add Y axis
-    const y = linear()
+    this.y = linear()
       .domain([0, max(data, (d) => d.total)])
       // .domain([0, 17000])
       .range([heightSvg, 0]);
 
-    this.drawTotals(y);
-    this.drawRenewables(y);
+    this.drawTotals();
+    this.drawRenewables();
     this.drawPercentRenewable();
+    this.drawLegends();
+  }
+
+  drawLegends() {
+    const {
+      svg,
+      x,
+      y,
+      heightSvg,
+      widthSvg,
+      numberFormat,
+    } = this;
 
     svg.append('g')
-      .attr('transform', `translate(0,${heightSvg})`)
-      .call(axisBottom(this.x)
-        .ticks(timeHour.every(2))
-        .tickFormat((d) => `${d.getHours()} Uhr`));
+      .call(axisBottom(x)
+        .ticks(timeHour.every(4))
+        .tickSize(heightSvg)
+        .tickPadding(10)
+        .tickFormat((d) => `${d.getHours()} Uhr`))
+      .call((g) => g.selectAll('.tick line')
+        .attr('stroke-opacity', 0.3)
+        .attr('stroke-dasharray', '2,2'))
+      .call((g) => g.select('.domain')
+        .remove())
+      .call((g) => g.selectAll('.tick text')
+        .attr('x', 20));
+
     svg.append('g')
-      .call(axisLeft(y)
-        .ticks(null)
-        .tickFormat((d) => `${numberFormat.format(d)} MWh`));
+      .call(axisRight(y)
+        .ticks(5)
+        .tickSize(widthSvg)
+        .tickFormat((d, i, elements) => {
+          const number = numberFormat.format(d);
+          if (i === 0) {
+            return null;
+          }
+          return i !== elements.length - 1 ? number : `${number} MWh`;
+        }))
+      .call((g) => g.select('.domain')
+        .remove())
+      .call((g) => g.select('.tick:first-of-type')
+        .remove())
+      .call((g) => g.selectAll('.tick line')
+        .attr('stroke-opacity', 0.3)
+        .attr('stroke-dasharray', '2,2'))
+      .call((g) => g.selectAll('.tick text')
+        .attr('x', 3)
+        .attr('dy', -6));
   }
 
   drawPercentRenewable() {
@@ -5534,7 +5840,7 @@ class Graph {
     this.svg.append('path')
       .datum(data)
       .attr('fill', 'none')
-      .attr('stroke', this.colors.purple_600)
+      .attr('style', 'stroke: var(--color--purple-600)')
       .attr('stroke-dasharray', '5,5')
       .attr('stroke-width', 2)
       .attr('d', line()
@@ -5542,13 +5848,14 @@ class Graph {
         .y((d) => y(d.percentRenewable)));
   }
 
-  drawRenewables(y) {
-    const { data, x, svg } = this;
+  drawRenewables() {
+    const {
+      data, x, y, svg,
+    } = this;
     // Add the line Photovoltaics
     svg.append('path')
       .datum(data)
-      .attr('fill', this.colors.yellow_400)
-      .attr('stroke', this.colors.yellow_600)
+      .attr('style', 'fill: var(--color--yellow-400); stroke: var(--color--yellow-600)')
       .attr('stroke-width', 2)
       .attr('d', area()
         .x((d) => x(d.date))
@@ -5558,8 +5865,7 @@ class Graph {
     // Add the line Wind Offshore
     svg.append('path')
       .datum(data)
-      .attr('fill', this.colors.aqua_400)
-      .attr('stroke', this.colors.aqua_600)
+      .attr('style', 'fill: var(--color--acqua-400); stroke: var(--color--acqua-600')
       .attr('stroke-width', 2)
       .attr('d', area()
         .x((d) => x(d.date))
@@ -5569,8 +5875,7 @@ class Graph {
     // Add the line Wind Onshore
     svg.append('path')
       .datum(data)
-      .attr('fill', this.colors.blue_400)
-      .attr('stroke', this.colors.blue_600)
+      .attr('style', 'fill: var(--color--blue-400); stroke: var(--color--blue-600)')
       .attr('stroke-width', 2)
       .attr('d', area()
         .x((d) => x(d.date))
@@ -5578,14 +5883,13 @@ class Graph {
         .y1((d) => y(d.windOffshore + d.windOnshore)));
   }
 
-  drawTotals(y) {
-    const { data, x } = this;
+  drawTotals() {
+    const { data, x, y } = this;
 
     // Add the line
     this.svg.append('path')
       .datum(data)
-      .attr('fill', this.colors.gray_400)
-      .attr('stroke', this.colors.gray_600)
+      .attr('style', 'fill: var(--color--gray-400); stroke: var(--color--gray-600)')
       .attr('stroke-width', 2)
       .attr('d', area()
         .x((d) => x(d.date))
@@ -5595,14 +5899,14 @@ class Graph {
 
   generateTable() {
     const {
-      data,
       tableElement,
+      data,
       numberFormat,
-      dateTimeFormat,
+      timeFormat,
     } = this;
 
     const columns = {
-      date: 'Datum',
+      date: 'Uhrzeit',
       total: 'Gesamt (Netzlast)',
       photovoltaic: 'Photovoltaik',
       wind: 'Wind',
@@ -5625,14 +5929,14 @@ class Graph {
         if (!Number.isNaN(datum[key])) {
           let string = '';
           if (key === 'date') {
-            string = dateTimeFormat.format(datum[key]);
+            string = timeFormat.format(datum[key]);
             html += `<th>${string}</th>`;
           } else if (key === 'percentRenewable') {
             string = numberFormat.format(datum[key] * 100);
             html += `<td>${string} %</td>`;
           } else {
             string = numberFormat.format(datum[key]);
-            html += `<td>${string} KWh</td>`;
+            html += `<td>${string} MWh</td>`;
           }
         }
       });
@@ -5640,136 +5944,6 @@ class Graph {
     });
 
     tableElement.innerHTML = html;
-  }
-
-  refineRow(row) {
-    const refinedRow = row;
-    if ('Photovoltaik und Wind[MWh]' in row) {
-      refinedRow.renewable = this.parseNumber(row['Photovoltaik und Wind[MWh]']);
-    }
-    if ('Photovoltaik[MWh]' in row) {
-      refinedRow.photovoltaic = this.parseNumber(row['Photovoltaik[MWh]']);
-    }
-    if ('Gesamt (Netzlast)[MWh]' in row) {
-      refinedRow.total = this.parseNumber(row['Gesamt (Netzlast)[MWh]']);
-    }
-    if ('Wind Offshore[MWh]' in row) {
-      refinedRow.windOffshore = this.parseNumber(row['Wind Offshore[MWh]']);
-    }
-    if ('Wind Onshore[MWh]' in row) {
-      refinedRow.windOnshore = this.parseNumber(row['Wind Onshore[MWh]']);
-    }
-    if ('windOffshore' in row && 'windOnshore' in row) {
-      refinedRow.wind = refinedRow.windOffshore + refinedRow.windOnshore;
-    }
-    if ('renewable' in row && 'total' in row) {
-      refinedRow.percentRenewable = refinedRow.renewable / refinedRow.total;
-    }
-
-    return refinedRow;
-  }
-
-  /**
-   * Example:
-   * row['Datum‘] = 28.10.2022
-   * row['Uhrzeit‘] = 18:00
-   * row['Gesamt[MWh]‘] = 53.511 (only on the hour, otherwise “-”)
-   * row['Photovoltaik und Wind[MWh]‘] = 1.082
-   * row['Wind Offshore[MWh]‘] = 317
-   * row['Wind Onshore[MWh]‘] = 514
-   * row['Photovoltaik[MWh]‘] = 251
-   * row['Sonstige[MWh]‘] = 49.760 (only on the hour, otherwise “-”)
-   */
-  prepareRow(row) {
-    const newRow = row;
-    const dateString = newRow.Datum;
-    const timeString = newRow.Uhrzeit;
-    const year = dateString.split('.')[2];
-    const month = dateString.split('.')[1];
-    const day = dateString.split('.')[0];
-    // const offset = '-00:00';
-    const iso8601String = `${year}-${month}-${day}T${timeString}:00.000`;
-    const date = new Date(iso8601String);
-
-    newRow.date = date;
-
-    return newRow;
-  }
-
-  async loadData() {
-    const { date, region } = this;
-    const datetime = new Date(date).getTime() - (2 * 60 * 60 * 1000);
-    const from = datetime; // e.g. 1665439200000
-    const to = datetime + (24 * 60 * 60 * 1000);
-    const forecastedProduction = await this.fetchForecastedProduction(from, to, region);
-    const forecastedConsumption = await this.fetchForecastedConsumption(from, to, region);
-    this.data = this.mergeData(
-      forecastedProduction,
-      forecastedConsumption,
-    ).map(this.refineRow.bind(this));
-    this.draw();
-    this.generateTable();
-  }
-
-  fetchForecastedConsumption(from, to, region) {
-    const requestData = {
-      request_form: [
-        {
-          format: 'CSV',
-          moduleIds: [6000411, 6004362],
-          region,
-          timestamp_from: from,
-          timestamp_to: to,
-          type: 'discrete',
-          language: 'de',
-        },
-      ],
-    };
-    return this.fetchData(from, to, requestData);
-  }
-
-  fetchForecastedProduction(from, to, region) {
-    const requestData = {
-      request_form: [
-        {
-          format: 'CSV',
-          moduleIds: [2005097, 2000125, 2003791, 2000123],
-          region,
-          timestamp_from: from,
-          timestamp_to: to,
-          type: 'discrete',
-          language: 'de',
-        },
-      ],
-    };
-    return this.fetchData(from, to, requestData);
-  }
-
-  fetchData(from, to, requestData) {
-    return new Promise(async (resolve, reject) => {
-      const response = await fetch(this.endpoint, {
-        body: JSON.stringify(requestData),
-        method: 'post',
-        mode: 'same-origin',
-        cache: 'force-cache',
-        headers: {
-          'Content-Type': 'application/json;charset=utf-8',
-        },
-      });
-      const body = await response.text();
-      const dsv = dsvFormat(';');
-      const data = dsv.parse(body, this.prepareRow.bind(this));
-      resolve(data);
-    });
-  }
-
-  setDateElementToToday() {
-    const date = new Date();
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-
-    this.dateElement.value = `${year}-${month}-${day}`;
   }
 
   initSvg() {
@@ -5780,10 +5954,181 @@ class Graph {
       .append('g')
       .attr('transform', `translate(${this.margin.x.start}, ${this.margin.y.start})`)
       .on('mouseover', this.onMouseover.bind(this))
+      // .on('touchstart', this.onMouseover.bind(this))
       .on('mousemove', this.onMousemove.bind(this))
+      // .on('touchmove', this.onMousemove.bind(this))
       .on('mouseleave', this.onMouseleave.bind(this));
   }
 }
 
-new Graph();
+var graph = new Graph();
+
+const endpoint = '/data.php';
+const storage = {
+  data: {},
+  date: null,
+  region: null,
+};
+
+// elements
+const forecastSummary = document.querySelector('forecast-summary');
+const { forecastDate, forecastRegion } = forecastSummary;
+
+/**
+ * Example:
+ * row['Datum‘] = 28.10.2022
+ * row['Uhrzeit‘] = 18:00
+ * row['Gesamt[MWh]‘] = 53.511 (only on the hour, otherwise “-”)
+ * row['Photovoltaik und Wind[MWh]‘] = 1.082
+ * row['Wind Offshore[MWh]‘] = 317
+ * row['Wind Onshore[MWh]‘] = 514
+ * row['Photovoltaik[MWh]‘] = 251
+ * row['Sonstige[MWh]‘] = 49.760 (only on the hour, otherwise “-”)
+ */
+const prepareRow = (row) => {
+  const newRow = row;
+  const dateString = newRow.Datum;
+  const timeString = newRow.Uhrzeit;
+  const year = dateString.split('.')[2];
+  const month = dateString.split('.')[1];
+  const day = dateString.split('.')[0];
+  // const offset = '-00:00';
+  const iso8601String = `${year}-${month}-${day}T${timeString}:00.000`;
+  const date = new Date(iso8601String);
+
+  newRow.date = date;
+
+  return newRow;
+};
+
+const parseCsv = (body) => new Promise((resolve) => {
+  const dsv = dsvFormat(';');
+  const data = dsv.parse(body, prepareRow);
+  resolve(data);
+});
+
+const fetchData = async (from, to, requestData) => {
+  const response = await fetch(endpoint, {
+    body: JSON.stringify(requestData),
+    method: 'post',
+    mode: 'same-origin',
+    cache: 'force-cache',
+    headers: {
+      'Content-Type': 'application/json;charset=utf-8',
+    },
+  });
+  const body = await response.text();
+  return parseCsv(body);
+};
+
+const mergeData = (data1, data2) => data1.map((row, index) => {
+  const data2Row = data2.find((item) => (
+    item.date.toISOString() === data1[index].date.toISOString()
+  ));
+  return Object.assign(row, data2Row ?? {});
+});
+
+// Parse german number
+const parseNumber = (numberString) => {
+  const number = parseFloat(numberString.replace('.', ''));
+  return Number.isNaN(number) ? 0 : number;
+};
+
+const refineRow = (row) => {
+  const refinedRow = row;
+  if ('Photovoltaik und Wind[MWh]' in row) {
+    refinedRow.renewable = parseNumber(row['Photovoltaik und Wind[MWh]']);
+  }
+  if ('Photovoltaik[MWh]' in row) {
+    refinedRow.photovoltaic = parseNumber(row['Photovoltaik[MWh]']);
+  }
+  if ('Gesamt (Netzlast)[MWh]' in row) {
+    refinedRow.total = parseNumber(row['Gesamt (Netzlast)[MWh]']);
+  }
+  if ('Wind Offshore[MWh]' in row) {
+    refinedRow.windOffshore = parseNumber(row['Wind Offshore[MWh]']);
+  }
+  if ('Wind Onshore[MWh]' in row) {
+    refinedRow.windOnshore = parseNumber(row['Wind Onshore[MWh]']);
+  }
+  if ('windOffshore' in row && 'windOnshore' in row) {
+    refinedRow.wind = refinedRow.windOffshore + refinedRow.windOnshore;
+  }
+  if ('renewable' in row && 'total' in row) {
+    refinedRow.percentRenewable = refinedRow.renewable / refinedRow.total;
+  }
+
+  return refinedRow;
+};
+
+const fetchForecastedConsumption = (from, to, region) => {
+  const requestData = {
+    request_form: [
+      {
+        format: 'CSV',
+        moduleIds: [6000411, 6004362],
+        region,
+        timestamp_from: from,
+        timestamp_to: to,
+        type: 'discrete',
+        language: 'de',
+      },
+    ],
+  };
+  return fetchData(from, to, requestData);
+};
+
+const fetchForecastedProduction = (from, to, region) => {
+  const requestData = {
+    request_form: [
+      {
+        format: 'CSV',
+        moduleIds: [2005097, 2000125, 2003791, 2000123],
+        region,
+        timestamp_from: from,
+        timestamp_to: to,
+        type: 'discrete',
+        language: 'de',
+      },
+    ],
+  };
+  return fetchData(from, to, requestData);
+};
+
+const loadData = async () => {
+  graph.loading = true;
+  forecastSummary.loading = true;
+
+  const { date, region } = storage;
+  const timezoneOffset = (new Date(date).getTimezoneOffset() * 60 * 1000) * -1;
+  const datetime = new Date(date).getTime() - timezoneOffset;
+  const from = datetime; // e.g. 1665439200000
+  const to = datetime + (24 * 60 * 60 * 1000);
+  const forecastedProduction = await fetchForecastedProduction(from, to, region);
+  const forecastedConsumption = await fetchForecastedConsumption(from, to, region);
+  storage.data = mergeData(
+    forecastedProduction,
+    forecastedConsumption,
+  ).map(refineRow);
+
+  graph.update(storage.data);
+  forecastSummary.update(storage.data);
+  graph.loading = false;
+  forecastSummary.loading = false;
+};
+
+// add event listner
+forecastDate.addEventListener('update', (event) => {
+  storage.date = event.detail.value;
+  loadData();
+});
+forecastRegion.addEventListener('update', (event) => {
+  storage.region = event.detail.value;
+  loadData();
+});
+
+// init
+storage.date = forecastDate.value;
+storage.region = forecastRegion.value;
+loadData();
 //# sourceMappingURL=index.js.map

@@ -1,0 +1,29 @@
+@import url("../framework/reset.css");
+
+.forecast-summary {
+	margin-block-start: 2rem;
+	max-width: 50rem;
+	margin-inline: auto;
+	font-size: x-large;
+	font-weight: 500;
+}
+p {
+	margin-block-start: 0.25em;
+}
+strong {
+	font-weight: 800;
+}
+.forecast-summary.-loading strong {
+	opacity: var(--opacity--loading);
+}
+
+[name="max"] p,
+[name="min"] p {
+	max-width: 29ch;
+}
+[name="max"] strong {
+	color: var(--color--postive);
+}
+[name="min"] strong {
+	color: var(--color--nevative);
+}
