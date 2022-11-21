@@ -39,7 +39,6 @@ class ForecastSummary extends HTMLElement {
     this.element.classList.toggle('-loading', value);
     if (value === true) {
       this.data = null;
-      this.update();
     }
     this.storage.loading = value;
   }
