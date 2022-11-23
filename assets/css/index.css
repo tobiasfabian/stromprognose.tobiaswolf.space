@@ -5,6 +5,7 @@
 :root {
 	--color--gray-400:   hsl(  0,   0%, 80%);
 	--color--gray-600:   hsl(  0,   0%, 47%);
+	--color--gray-800:   hsl(  0,   0%, 27%);
 	--color--yellow-400: hsl( 40,  81%, 50%);
 	--color--yellow-600: hsl( 40, 100%, 40%);
 	--color--green-400:  hsl( 91,  60%, 45%);
@@ -21,12 +22,15 @@
 	--color--postive:    var(--color--green-600);
 	--color--nevative:   var(--color--red-600);
 
+	--color--field-text: var(--color--gray-800);
+
 	--opacity--loading: 0.2;
 }
 @media (prefers-color-scheme: dark) {
 	:root {
 		--color--gray-400:   hsl(  0,  0%, 30%);
 		--color--gray-600:   hsl(  0,  0%, 47%);
+		--color--gray-800:   hsl(  0,  0%, 67%);
 		--color--yellow-400: hsl( 40, 81%, 35%);
 		--color--yellow-600: hsl( 40, 90%, 40%);
   	--color--green-400:  hsl( 91, 60%, 25%);
@@ -53,7 +57,6 @@ body {
 	max-width: 920px;
 	margin: 0 auto;
 	padding: 2rem 10px;
-	background-color: Canvas;
 }
 h1 {
 	font-size: small;

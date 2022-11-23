@@ -1,13 +1,12 @@
 @import url("../framework/reset.css");
 
 label {
-	color: FieldText;
+	color: var(--color--field-text);
 	border-block-end: 1px solid currentcolor;
 }
 
 input {
 	border: 0;
-	text-decoration: underline;
 }
 input.-browser-chrome {
 	max-width: 8.5ch;

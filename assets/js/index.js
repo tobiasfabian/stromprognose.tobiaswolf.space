@@ -1357,31 +1357,6 @@ function select(selector) {
       : new Selection$1([[selector]], root);
 }
 
-function sourceEvent(event) {
-  let sourceEvent;
-  while (sourceEvent = event.sourceEvent) event = sourceEvent;
-  return event;
-}
-
-function pointer(event, node) {
-  event = sourceEvent(event);
-  if (node === undefined) node = event.currentTarget;
-  if (node) {
-    var svg = node.ownerSVGElement || node;
-    if (svg.createSVGPoint) {
-      var point = svg.createSVGPoint();
-      point.x = event.clientX, point.y = event.clientY;
-      point = point.matrixTransform(node.getScreenCTM().inverse());
-      return [point.x, point.y];
-    }
-    if (node.getBoundingClientRect) {
-      var rect = node.getBoundingClientRect();
-      return [event.clientX - rect.left - node.clientLeft, event.clientY - rect.top - node.clientTop];
-    }
-  }
-  return [event.pageX, event.pageY];
-}
-
 function define(constructor, factory, prototype) {
   constructor.prototype = factory.prototype = prototype;
   prototype.constructor = constructor;
@@ -5671,48 +5646,51 @@ class Graph {
     this.tableElement = document.querySelector('#table');
 
     // functions
-    this.onMouseover = () => {
-      this.graphInfoElement.style = 'visibility: visible';
-    };
-    this.onMousemove = (event) => {
-      event.preventDefault();
+    this.showDataInInfoElement = (data) => {
       const {
-        data,
-        x,
         numberFormat,
         timeFormat,
       } = this;
-      const bisect = bisector((d) => d.date).left;
-      const xPos = pointer(event)[0];
-      const x0 = bisect(data, x.invert(xPos));
-      const d0 = data[x0];
 
       this.graphInfoElement.innerHTML = `
         <strong>
-          ${timeFormat.format(d0.date)}
+          ${timeFormat.format(data.date)}
         </strong>
         <strong style="color: var(--color--gray-600)">
-          Gesamt (Netzlast): ${numberFormat.format(d0.total)} MWh
+          Gesamt (Netzlast): ${numberFormat.format(data.total)} MWh
         </strong>
         <strong style="color: var(--color--purple-600)">
-          Anteil Erneuerbare: ${numberFormat.format(d0.percentRenewable * 100)}%
+          Anteil Erneuerbare: ${numberFormat.format(data.percentRenewable * 100)}%
         </strong>
         <strong style="color: var(--color--yellow-600)">
-          Photovoltaik: ${numberFormat.format(d0.photovoltaic)} MWh
+          Photovoltaik: ${numberFormat.format(data.photovoltaic)} MWh
         </strong>
         <strong style="color: var(--color--blue-600)">
-          Wind: ${numberFormat.format(d0.wind)} MWh
+          Wind: ${numberFormat.format(data.wind)} MWh
         </strong>
         <div style="color: var(--color--blue-600); padding-inline-start: 1em;">
-          Wind Onshore: ${numberFormat.format(d0.windOnshore)} MWh
+          Wind Onshore: ${numberFormat.format(data.windOnshore)} MWh
         </div>
         <div style="color: var(--color--acqua-600); padding-inline-start: 1em;">
-          Wind Offshore: ${numberFormat.format(d0.windOffshore)} MWh
+          Wind Offshore: ${numberFormat.format(data.windOffshore)} MWh
         </div>
       `;
     };
-    this.onMouseleave = () => {
-      this.graphInfoElement.style = 'visibility: hidden';
+    this.onMousemove = (event) => {
+      const {
+        data,
+        x,
+      } = this;
+
+      const bisect = bisector((d) => d.date).left;
+      const mouseX = event.clientX ?? event.touches[0].clientX;
+      const xPos = mouseX - this.graphElement.getBoundingClientRect().x;
+      const x0 = bisect(data, x.invert(xPos));
+      const d0 = data[x0];
+
+      if (d0) {
+        this.showDataInInfoElement(d0);
+      }
     };
     this.onResize = () => {
       this.updateSizes();
@@ -5753,6 +5731,7 @@ class Graph {
     this.updateSizes();
     this.draw();
     this.generateTable();
+    this.showDataInInfoElement(data[0]);
   }
 
   draw() {
@@ -5946,17 +5925,19 @@ class Graph {
   }
 
   initSvg() {
+    const { graphElement, onMousemove } = this;
     this.svg = select('#graph')
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
       .append('g')
-      .attr('transform', `translate(${this.margin.x.start}, ${this.margin.y.start})`)
-      .on('mouseover', this.onMouseover.bind(this))
-      // .on('touchstart', this.onMouseover.bind(this))
-      .on('mousemove', this.onMousemove.bind(this))
-      // .on('touchmove', this.onMousemove.bind(this))
-      .on('mouseleave', this.onMouseleave.bind(this));
+      .attr('transform', `translate(${this.margin.x.start}, ${this.margin.y.start})`);
+    graphElement.addEventListener('mousemove', onMousemove.bind(this), {
+      passive: true,
+    });
+    graphElement.addEventListener('touchmove', onMousemove.bind(this), {
+      passive: true,
+    });
   }
 }
 

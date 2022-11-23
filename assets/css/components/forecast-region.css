@@ -2,7 +2,7 @@
 
 label {
 	position: relative;
-	color: FieldText;
+	color: var(--color--field-text);
 	border-block-end: 1px solid currentcolor;
 }
 
