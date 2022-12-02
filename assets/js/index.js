@@ -5968,7 +5968,7 @@ const { forecastDate, forecastRegion } = forecastSummary;
 const prepareRow = (row) => {
   const newRow = row;
   const dateString = newRow.Datum;
-  const timeString = newRow.Uhrzeit;
+  const timeString = newRow.Uhrzeit ?? newRow.Anfang;
   const year = dateString.split('.')[2];
   const month = dateString.split('.')[1];
   const day = dateString.split('.')[0];
