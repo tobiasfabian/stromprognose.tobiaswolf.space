@@ -97,7 +97,7 @@ class ForecastSummary extends HTMLElement {
     let percent = this.numberFormatPercent.format(0);
     if (this.data) {
       const minItem = this.data[this.minIndex];
-      time = `${minItem.Uhrzeit} Uhr`;
+      time = `${minItem.Anfang} Uhr`;
       percent = this.numberFormatPercent.format(minItem.percentRenewable);
     }
     return this.interpolate(this.minSlotTemplateString, {
@@ -111,7 +111,7 @@ class ForecastSummary extends HTMLElement {
     let percent = this.numberFormatPercent.format(0);
     if (this.data) {
       const maxItem = this.data[this.maxIndex];
-      time = `${maxItem.Uhrzeit} Uhr`;
+      time = `${maxItem.Anfang} Uhr`;
       percent = this.numberFormatPercent.format(maxItem.percentRenewable);
     }
     return this.interpolate(this.maxSlotTemplateString, {

@@ -30,7 +30,7 @@ const { forecastDate, forecastRegion } = forecastSummary;
 const prepareRow = (row) => {
   const newRow = row;
   const dateString = newRow.Datum;
-  const timeString = newRow.Uhrzeit;
+  const timeString = newRow.Uhrzeit ?? newRow.Anfang;
   const year = dateString.split('.')[2];
   const month = dateString.split('.')[1];
   const day = dateString.split('.')[0];
@@ -78,20 +78,25 @@ const parseNumber = (numberString) => {
 
 const refineRow = (row) => {
   const refinedRow = row;
-  if ('Photovoltaik und Wind[MWh]' in row) {
-    refinedRow.renewable = parseNumber(row['Photovoltaik und Wind[MWh]']);
+  const renewableColumn = 'Photovoltaik und Wind [MWh] Originale Auflösungen';
+  const photovoltaicColumn = 'Photovoltaik [MWh] Originale Auflösungen';
+  const totalColumn = 'Gesamt (Netzlast) [MWh] Originale Auflösungen';
+  const windOffshoreColumn = 'Wind Offshore [MWh] Originale Auflösungen';
+  const windOnshoreColumn = 'Wind Onshore [MWh] Originale Auflösungen';
+  if (renewableColumn in row) {
+    refinedRow.renewable = parseNumber(row[renewableColumn]);
   }
-  if ('Photovoltaik[MWh]' in row) {
-    refinedRow.photovoltaic = parseNumber(row['Photovoltaik[MWh]']);
+  if (photovoltaicColumn in row) {
+    refinedRow.photovoltaic = parseNumber(row[photovoltaicColumn]);
   }
-  if ('Gesamt (Netzlast)[MWh]' in row) {
-    refinedRow.total = parseNumber(row['Gesamt (Netzlast)[MWh]']);
+  if (totalColumn in row) {
+    refinedRow.total = parseNumber(row[totalColumn]);
   }
-  if ('Wind Offshore[MWh]' in row) {
-    refinedRow.windOffshore = parseNumber(row['Wind Offshore[MWh]']);
+  if (windOffshoreColumn in row) {
+    refinedRow.windOffshore = parseNumber(row[windOffshoreColumn]);
   }
-  if ('Wind Onshore[MWh]' in row) {
-    refinedRow.windOnshore = parseNumber(row['Wind Onshore[MWh]']);
+  if (windOnshoreColumn in row) {
+    refinedRow.windOnshore = parseNumber(row[windOnshoreColumn]);
   }
   if ('windOffshore' in row && 'windOnshore' in row) {
     refinedRow.wind = refinedRow.windOffshore + refinedRow.windOnshore;
